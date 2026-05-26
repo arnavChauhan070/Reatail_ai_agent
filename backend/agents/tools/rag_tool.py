@@ -10,12 +10,22 @@ from backend.agents.vector_store import search_azure
 
 load_dotenv()
 
-azure_openai = AzureOpenAI(
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01"),
-)
 DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o")
+
+
+def require_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
+
+
+def get_azure_openai_client() -> AzureOpenAI:
+    return AzureOpenAI(
+        api_key=require_env("AZURE_OPENAI_API_KEY"),
+        azure_endpoint=require_env("AZURE_OPENAI_ENDPOINT"),
+        api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01"),
+    )
 
 
 @tool("retail_policy_search")
@@ -46,7 +56,7 @@ def retail_policy_search(question: str) -> str:
         )
         user_prompt = f"Context:\n\n{context}\n\nQuestion: {question}\n\nAnswer:"
 
-        response = azure_openai.chat.completions.create(
+        response = get_azure_openai_client().chat.completions.create(
             model=DEPLOYMENT_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},

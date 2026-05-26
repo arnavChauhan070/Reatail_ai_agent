@@ -10,44 +10,59 @@ from backend.agents.tools.rag_tool import retail_policy_search
 from backend.app.config import settings
 from backend.app.database import retail_db
 
-retail_llm = AzureChatOpenAI(
-    azure_deployment=settings.AZURE_OPENAI_DEPLOYMENT,
-    azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
-    api_key=settings.AZURE_OPENAI_KEY,
-    api_version=settings.AZURE_OPENAI_VERSION,
-    temperature=0.1
-)
 
-data_analyst_agent = Agent(
-    role="Senior Retail Data Analyst",
-    goal="Analyze Walmart sales data and provide accurate insights.",
-    backstory="Expert retail analyst with 10 years Walmart experience.",
-    tools=[retail_db_query],
-    llm=retail_llm,
-    verbose=True
-)
+def require_setting(name: str, value: str) -> str:
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
 
-forecasting_agent = Agent(
-    role="ML Sales Forecasting Expert",
-    goal="Predict future Walmart store sales accurately.",
-    backstory="ML expert using XGBoost with 98% accuracy.",
-    tools=[retail_forecast],
-    llm=retail_llm,
-    verbose=True
-)
 
-policy_agent = Agent(
-    role="Walmart Store Policy Assistant",
-    goal="Answer questions about store policies and procedures.",
-    backstory="Knowledgeable Walmart assistant with complete policy knowledge.",
-    tools=[retail_policy_search],
-    llm=retail_llm,
-    verbose=True
-)
+def get_retail_llm():
+    return AzureChatOpenAI(
+        azure_deployment=settings.AZURE_OPENAI_DEPLOYMENT,
+        azure_endpoint=require_setting("AZURE_OPENAI_ENDPOINT", settings.AZURE_OPENAI_ENDPOINT),
+        api_key=require_setting("AZURE_OPENAI_API_KEY", settings.AZURE_OPENAI_KEY),
+        api_version=settings.AZURE_OPENAI_VERSION,
+        temperature=0.1
+    )
+
+
+def build_agents():
+    retail_llm = get_retail_llm()
+
+    data_analyst_agent = Agent(
+        role="Senior Retail Data Analyst",
+        goal="Analyze Walmart sales data and provide accurate insights.",
+        backstory="Expert retail analyst with 10 years Walmart experience.",
+        tools=[retail_db_query],
+        llm=retail_llm,
+        verbose=True
+    )
+
+    forecasting_agent = Agent(
+        role="ML Sales Forecasting Expert",
+        goal="Predict future Walmart store sales accurately.",
+        backstory="ML expert using XGBoost with 98% accuracy.",
+        tools=[retail_forecast],
+        llm=retail_llm,
+        verbose=True
+    )
+
+    policy_agent = Agent(
+        role="Walmart Store Policy Assistant",
+        goal="Answer questions about store policies and procedures.",
+        backstory="Knowledgeable Walmart assistant with complete policy knowledge.",
+        tools=[retail_policy_search],
+        llm=retail_llm,
+        verbose=True
+    )
+
+    return data_analyst_agent, forecasting_agent, policy_agent
 
 
 def route_question(user_query: str):
     """Routes query to the correct agent based on keywords."""
+    data_analyst_agent, forecasting_agent, policy_agent = build_agents()
     query_lower = user_query.lower()
     if any(w in query_lower for w in ["predict", "forecast", "next week", "future", "estimate"]):
         return forecasting_agent, "Forecasting Agent"

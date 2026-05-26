@@ -24,16 +24,30 @@ SEARCH_API_KEY  = os.getenv("AZURE_SEARCH_API_KEY")
 INDEX_NAME      = os.getenv("AZURE_SEARCH_INDEX_NAME", "retail-knowledge-index")
 KNOWLEDGE_BASE  = os.getenv("KNOWLEDGE_BASE_PATH", "docs/knowledge_base/")
 
-azure_openai = AzureOpenAI(
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01"),
-)
+def require_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
 
-SEARCH_HEADERS = {
-    "Content-Type": "application/json",
-    "api-key"     : SEARCH_API_KEY,
-}
+
+def get_azure_openai_client() -> AzureOpenAI:
+    return AzureOpenAI(
+        api_key=require_env("AZURE_OPENAI_API_KEY"),
+        azure_endpoint=require_env("AZURE_OPENAI_ENDPOINT"),
+        api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01"),
+    )
+
+
+def get_search_endpoint() -> str:
+    return require_env("AZURE_SEARCH_ENDPOINT")
+
+
+def get_search_headers() -> dict:
+    return {
+        "Content-Type": "application/json",
+        "api-key"     : require_env("AZURE_SEARCH_API_KEY"),
+    }
 
 
 def create_search_index() -> None:
@@ -73,8 +87,8 @@ def create_search_index() -> None:
             ],
         },
     }
-    url = f"{SEARCH_ENDPOINT}/indexes/{INDEX_NAME}?api-version=2023-11-01"
-    response = requests.put(url, headers=SEARCH_HEADERS, json=index_schema)
+    url = f"{get_search_endpoint()}/indexes/{INDEX_NAME}?api-version=2023-11-01"
+    response = requests.put(url, headers=get_search_headers(), json=index_schema)
     if response.status_code in (200, 201,204):
         print(f"  Index '{INDEX_NAME}' created successfully.")
     else:
@@ -115,7 +129,7 @@ def chunk_text(text: str, chunk_size: int = 100) -> list:
 
 def get_embedding(text: str) -> list:
     """Gets 1536-dim embedding from Azure OpenAI text-embedding-ada-002."""
-    response = azure_openai.embeddings.create(
+    response = get_azure_openai_client().embeddings.create(
         input=text,
         model="text-embedding-ada-002",
     )
@@ -141,10 +155,10 @@ def upload_documents_to_search(documents: list) -> None:
             if total % 10 == 0:
                 print(f"    {total} chunks embedded...")
 
-    upload_url = f"{SEARCH_ENDPOINT}/indexes/{INDEX_NAME}/docs/index?api-version=2023-11-01"
+    upload_url = f"{get_search_endpoint()}/indexes/{INDEX_NAME}/docs/index?api-version=2023-11-01"
     for i in range(0, len(all_docs), 100):
         batch    = all_docs[i : i + 100]
-        response = requests.post(upload_url, headers=SEARCH_HEADERS, json={"value": batch})
+        response = requests.post(upload_url, headers=get_search_headers(), json={"value": batch})
         if response.status_code in (200, 201):
             print(f"  Uploaded batch {i//100 + 1} ({len(batch)} chunks)")
         else:
@@ -165,8 +179,8 @@ def search_azure(query: str, top_k: int = 3) -> list:
         "select": "content,source,chunk_index",
         "top"   : top_k,
     }
-    url = f"{SEARCH_ENDPOINT}/indexes/{INDEX_NAME}/docs/search?api-version=2023-11-01"
-    response = requests.post(url, headers=SEARCH_HEADERS, json=search_payload)
+    url = f"{get_search_endpoint()}/indexes/{INDEX_NAME}/docs/search?api-version=2023-11-01"
+    response = requests.post(url, headers=get_search_headers(), json=search_payload)
     if response.status_code != 200:
         raise Exception(f"Search failed: {response.status_code} — {response.text}")
     return [
