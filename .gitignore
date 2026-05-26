@@ -1,0 +1,20 @@
+.env
+venv/
+__pycache__/
+*.pyc
+*.pkl
+data/raw/
+data/staged/
+data/curated/
+genai/rag/embeddings.pkl
+genai/rag/faiss_index
+
+# Required by the deployed FastAPI app at runtime.
+!data/
+!data/staged/
+!data/staged/*.parquet
+!data/curated/
+!data/curated/*.parquet
+!ml_engine/models/
+!ml_engine/models/*.pkl
+!ml_engine/models/*.parquet
