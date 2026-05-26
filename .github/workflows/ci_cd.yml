@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: retail-app
+  AZURE_WEBAPP_NAME: ${{ secrets.AZURE_WEBAPP_NAME }}
   PYTHON_VERSION: "3.11"
   MONGODB_URL: ${{ secrets.MONGODB_URL }}
   MONGODB_DB_NAME: ${{ secrets.MONGODB_DB_NAME }}
@@ -60,3 +60,4 @@ jobs:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: release.zip
+#kh
