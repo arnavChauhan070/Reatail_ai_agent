@@ -26,3 +26,5 @@ output_path = os.path.join('data', 'staged', 'sales_staged.parquet')
 df.to_parquet(output_path, index=False)
 
 print(f"\nSUCCESS! Silver data saved to {output_path}")
+
+#change
