@@ -4,6 +4,7 @@ CrewAI orchestrator — routes questions to the correct agent.
 """
 from crewai import Agent, Task, Crew
 from langchain_openai import AzureChatOpenAI
+from backend.agents.tools.anomaly_tool import retail_anomaly_analysis
 from backend.agents.tools.db_tool import retail_db_query
 from backend.agents.tools.forecast_tool import retail_forecast
 from backend.agents.tools.rag_tool import retail_policy_search
@@ -48,6 +49,15 @@ def build_agents():
         verbose=True
     )
 
+    anomaly_agent = Agent(
+        role="Retail Anomaly Detection Analyst",
+        goal="Explain detected unusual Walmart sales patterns from the anomaly detection output.",
+        backstory="ML monitoring analyst who specializes in identifying sales spikes, drops, and contextual anomalies.",
+        tools=[retail_anomaly_analysis],
+        llm=retail_llm,
+        verbose=True
+    )
+
     policy_agent = Agent(
         role="Walmart Store Policy Assistant",
         goal="Answer questions about store policies and procedures.",
@@ -57,14 +67,19 @@ def build_agents():
         verbose=True
     )
 
-    return data_analyst_agent, forecasting_agent, policy_agent
+    return data_analyst_agent, forecasting_agent, anomaly_agent, policy_agent
 
 
 def route_question(user_query: str):
     """Routes query to the correct agent based on keywords."""
-    data_analyst_agent, forecasting_agent, policy_agent = build_agents()
+    data_analyst_agent, forecasting_agent, anomaly_agent, policy_agent = build_agents()
     query_lower = user_query.lower()
-    if any(w in query_lower for w in ["predict", "forecast", "next week", "future", "estimate"]):
+    if any(w in query_lower for w in [
+        "anomaly", "anomalies", "outlier", "outliers", "unusual",
+        "weird", "abnormal", "spike", "drop", "detected"
+    ]):
+        return anomaly_agent, "Anomaly Detection Agent"
+    elif any(w in query_lower for w in ["predict", "forecast", "next week", "future", "estimate"]):
         return forecasting_agent, "Forecasting Agent"
     elif any(w in query_lower for w in ["policy", "return", "hours", "refund", "payment", "faq", "loyalty"]):
         return policy_agent, "Policy Agent"

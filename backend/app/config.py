@@ -15,6 +15,10 @@ class Settings:
     AZURE_OPENAI_KEY: str        = os.getenv("AZURE_OPENAI_API_KEY", "")
     AZURE_OPENAI_ENDPOINT: str   = os.getenv("AZURE_OPENAI_ENDPOINT", "")
     AZURE_OPENAI_DEPLOYMENT: str = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o")
+    AZURE_OPENAI_EMBEDDING_DEPLOYMENT: str = os.getenv(
+        "AZURE_OPENAI_EMBEDDING_DEPLOYMENT",
+        "text-embedding-ada-002"
+    )
     AZURE_OPENAI_VERSION: str    = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
 
     AZURE_SEARCH_ENDPOINT: str   = os.getenv("AZURE_SEARCH_ENDPOINT", "")

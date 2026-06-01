@@ -23,6 +23,7 @@ SEARCH_ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT")
 SEARCH_API_KEY  = os.getenv("AZURE_SEARCH_API_KEY")
 INDEX_NAME      = os.getenv("AZURE_SEARCH_INDEX_NAME", "retail-knowledge-index")
 KNOWLEDGE_BASE  = os.getenv("KNOWLEDGE_BASE_PATH", "docs/knowledge_base/")
+EMBEDDING_DEPLOYMENT = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT", "text-embedding-ada-002")
 
 def require_env(name: str) -> str:
     value = os.getenv(name)
@@ -128,10 +129,10 @@ def chunk_text(text: str, chunk_size: int = 100) -> list:
 
 
 def get_embedding(text: str) -> list:
-    """Gets 1536-dim embedding from Azure OpenAI text-embedding-ada-002."""
+    """Gets 1536-dim embedding from the configured Azure OpenAI embedding deployment."""
     response = get_azure_openai_client().embeddings.create(
         input=text,
-        model="text-embedding-ada-002",
+        model=EMBEDDING_DEPLOYMENT,
     )
     return response.data[0].embedding
 
